@@ -13,11 +13,11 @@ torch.manual_seed(0)
 logger = logging.getLogger(__name__)
 
 # environment parameters
-dx_ini = -0.3
-vx_ini = 0
-dy_ini = 6
-vy_ini = 0
-theta = math.pi / 3
+dx_ini = -0.3  # initial position at x axis
+vx_ini = 0  # initial velocity at x axis
+dy_ini = 6  # initial position at y axis
+vy_ini = 0  # initial velocity at y axis
+theta = math.pi / 2  # initial angle deviation of rocket axis from y axis
 
 GRAVITY_ACCEL = 0.12  # gravity constant
 FRAME_TIME = 0.1  # time interval
@@ -53,6 +53,7 @@ class Dynamics(nn.Module):
         else:
             delta_state = BOOST_ACCEL * FRAME_TIME * torch.tensor([0., -torch.sin(state[4]), 0., torch.cos(state[4]), 0]) * action[0]
 
+        # Theta
         delta_state_theta = FRAME_TIME * torch.tensor([0., 0., 0., 0, -1.]) * action[1]
 
         # Update velocity
@@ -160,19 +161,19 @@ class Optimize:
         plt.ylabel('Rocket Y Position(m)')
         plt.show()
 
-        plt.plot(list(range(100)), vx)
+        plt.plot(list(range(self.simulation.T)), vx)
         plt.title('Velocity X Changeable for Rocket Landing')
         plt.xlabel('Time Step')
         plt.ylabel('Rocket Y Velocity(m)')
         plt.show()
 
-        plt.plot(list(range(100)), vy)
+        plt.plot(list(range(self.simulation.T)), vy)
         plt.title('Velocity Y Changeable for Rocket Landing')
         plt.xlabel('Time Step')
         plt.ylabel('Rocket Y Velocity(m)')
         plt.show()
 
-        plt.plot(list(range(100)), theta)
+        plt.plot(list(range(self.simulation.T)), theta)
         plt.title('Theta Changeable for Rocket Landing')
         plt.xlabel('Time Step')
         plt.ylabel('Rocket Theta(rad)')
@@ -186,7 +187,7 @@ d = Dynamics()  # define dynamics
 c = Controller(dim_input, dim_hidden, dim_output)  # define controller
 s = Simulation(c, d, T)  # define simulation
 o = Optimize(s)  # define optimizer
-o.train(120)
+o.train(200)
 
 plt.title('Objective Function Convergence Curve')
 plt.xlabel('Training Iteration')
