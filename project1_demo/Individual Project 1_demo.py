@@ -178,12 +178,12 @@ class Optimize:
             axs1.plot(list(range(self.simulation.T)), vx)
             axs1.set_title('Velocity X Changeable for Rocket Landing')
             axs1.set_xlabel('Time Step')
-            axs1.set_ylabel('Rocket X Velocity(m)')
+            axs1.set_ylabel('Rocket X Velocity(m/s)')
 
             axs2.plot(list(range(self.simulation.T)), vy)
             axs2.set_title('Velocity Y Changeable for Rocket Landing')
             axs2.set_xlabel('Time Step')
-            axs2.set_ylabel('Rocket Y Velocity(m)')
+            axs2.set_ylabel('Rocket Y Velocity(m/s)')
 
             axs3.plot(list(range(self.simulation.T)), theta)
             axs3.set_title('Theta Changeable for Rocket Landing')
