@@ -17,7 +17,7 @@ dx_ini = -0.3  # initial position at x axis
 vx_ini = 0  # initial velocity at x axis
 dy_ini = 6  # initial position at y axis
 vy_ini = 0  # initial velocity at y axis
-theta = math.pi / 2  # initial angle deviation of rocket axis from y axis
+theta = math.pi / 3  # initial angle deviation of rocket axis from y axis
 
 GRAVITY_ACCEL = 0.12  # gravity constant
 FRAME_TIME = 0.1  # time interval
