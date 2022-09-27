@@ -139,9 +139,7 @@ class VisUtils:
         return np.array([x, y])
 
     def generate(self, data):
-        # t_bar = np.arange(0, 3, 0.15)  # t_bar = 0: 0.1: 10
-        t_bar = np.linspace(0, 4, 41)
-        # t_bar = np.linspace(0, 3, 31)
+        t_bar = np.linspace(0, 3, 40)
         X_bar = np.zeros((5, t_bar.shape[0]))
         i = 0
         j = 0
