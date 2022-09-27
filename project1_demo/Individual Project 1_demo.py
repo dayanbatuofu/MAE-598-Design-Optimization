@@ -164,7 +164,7 @@ class Optimize:
         plt.plot(list(range(self.simulation.T)), vx)
         plt.title('Velocity X Changeable for Rocket Landing')
         plt.xlabel('Time Step')
-        plt.ylabel('Rocket Y Velocity(m)')
+        plt.ylabel('Rocket X Velocity(m)')
         plt.show()
 
         plt.plot(list(range(self.simulation.T)), vy)
