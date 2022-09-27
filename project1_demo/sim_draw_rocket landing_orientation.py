@@ -144,10 +144,10 @@ class VisUtils:
             rocket: original state: (px, vx, py, vy, theta)
             scaling the position and velocity to have a better animation, original position and velocity is in [0, 1]
             """
-            X_bar[0][j] = ((time - t[0][i - 1]) * (X[0][i] - X[0][i - 1]) / (t[0][i] - t[0][i - 1]) + X[0][i - 1]) * 6
-            X_bar[1][j] = ((time - t[0][i - 1]) * (X[1][i] - X[1][i - 1]) / (t[0][i] - t[0][i - 1]) + X[1][i - 1]) * 6
-            X_bar[2][j] = ((time - t[0][i - 1]) * (X[2][i] - X[2][i - 1]) / (t[0][i] - t[0][i - 1]) + X[2][i - 1]) * 6
-            X_bar[3][j] = ((time - t[0][i - 1]) * (X[3][i] - X[3][i - 1]) / (t[0][i] - t[0][i - 1]) + X[3][i - 1]) * 6
+            X_bar[0][j] = ((time - t[0][i - 1]) * (X[0][i] - X[0][i - 1]) / (t[0][i] - t[0][i - 1]) + X[0][i - 1]) * 8
+            X_bar[1][j] = ((time - t[0][i - 1]) * (X[1][i] - X[1][i - 1]) / (t[0][i] - t[0][i - 1]) + X[1][i - 1]) * 8
+            X_bar[2][j] = ((time - t[0][i - 1]) * (X[2][i] - X[2][i - 1]) / (t[0][i] - t[0][i - 1]) + X[2][i - 1]) * 8
+            X_bar[3][j] = ((time - t[0][i - 1]) * (X[3][i] - X[3][i - 1]) / (t[0][i] - t[0][i - 1]) + X[3][i - 1]) * 8
             X_bar[4][j] = (time - t[0][i - 1]) * (X[4][i] - X[4][i - 1]) / (t[0][i] - t[0][i - 1]) + X[4][i - 1]
             time = time + 0.1
             j += 1
