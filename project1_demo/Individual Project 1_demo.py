@@ -1,27 +1,29 @@
 import logging
+import math
+import random
 import numpy as np
+import time
 import torch
 import torch.nn as nn
 from torch import optim
 import matplotlib.pyplot as plt
-import random
 import scipy.io
-import math
 
-torch.manual_seed(0)
+torch.manual_seed(10)
 
 logger = logging.getLogger(__name__)
 
 # environment parameters
-dx_ini = -0.3  # initial position at x axis
+dx_ini = -1  # initial position at x axis
 vx_ini = 0  # initial velocity at x axis
-dy_ini = 6  # initial position at y axis
+dy_ini = 3  # initial position at y axis
 vy_ini = 0  # initial velocity at y axis
 theta = math.pi / 3  # initial angle deviation of rocket axis from y axis
 
-GRAVITY_ACCEL = 0.12  # gravity constant
 FRAME_TIME = 0.1  # time interval
-BOOST_ACCEL = 3.  # thrust constant
+GRAVITY_ACCEL = 0.12  # gravity constant
+BOOST_ACCEL = 0.18  # thrust constant
+DRAG_ACCEL = 0.005  # drag constant
 
 class Dynamics(nn.Module):
 
@@ -48,28 +50,27 @@ class Dynamics(nn.Module):
 
         # Thrust
         # Note: Same reason as above. Need a 5-by-1 tensor.
-        if state[0] <= 0:
-            delta_state = BOOST_ACCEL * FRAME_TIME * torch.tensor([0., torch.sin(state[4]), 0., -torch.cos(state[4]), 0]) * action[0]
-        else:
-            delta_state = BOOST_ACCEL * FRAME_TIME * torch.tensor([0., -torch.sin(state[4]), 0., torch.cos(state[4]), 0]) * action[0]
+        N = len(state)
+        state_tensor = torch.zeros((N, 5))
+        state_tensor[:, 1] = -torch.sin(state[:, 4])
+        state_tensor[:, 3] = torch.cos(state[:, 4])
+        delta_state = BOOST_ACCEL * FRAME_TIME * torch.mul(state_tensor, action[:, 0].reshape(-1, 1))
 
         # Theta
-        delta_state_theta = FRAME_TIME * torch.tensor([0., 0., 0., 0, -1.]) * action[1]
+        delta_state_theta = FRAME_TIME * torch.mul(torch.tensor([0., 0., 0., 0, -1.]), action[:, 1].reshape(-1, 1))
 
-        # Update velocity
         state = state + delta_state + delta_state_gravity + delta_state_theta
 
         # Update state
-        # Note: Same as above. Use operators on matrices/tensors as much as possible. Do not use element-wise operators as they are considered inplace.
         step_mat = torch.tensor([[1., FRAME_TIME, 0., 0., 0.],
                                  [0., 1., 0., 0., 0.],
                                  [0., 0., 1., FRAME_TIME, 0.],
                                  [0., 0., 0., 1., 0.],
                                  [0., 0., 0., 0., 1.]])
 
-        state = torch.matmul(step_mat, state)
+        state = torch.matmul(step_mat, state.T)
 
-        return state
+        return state.T
 
 class Controller(nn.Module):
 
@@ -84,8 +85,6 @@ class Controller(nn.Module):
         self.network = nn.Sequential(
             nn.Linear(dim_input, dim_hidden),
             nn.Tanh(),
-            nn.Linear(dim_hidden, dim_hidden),
-            nn.Tanh(),
             nn.Linear(dim_hidden, dim_output),
             # You can add more layers here
             nn.Sigmoid())
@@ -94,14 +93,21 @@ class Controller(nn.Module):
         action = self.network(state)
         return action
 
+
+# the simulator that rolls out x(1), x(2), ..., x(T)
+# Note:
+# 0. Need to change "initialize_state" to optimize the controller over a distribution of initial states
+# 1. self.action_trajectory and self.state_trajectory stores the action and state trajectories along time
+
 class Simulation(nn.Module):
 
-    def __init__(self, controller, dynamics, T):
+    def __init__(self, controller, dynamics, T, N):
         super(Simulation, self).__init__()
         self.state = self.initialize_state()
         self.controller = controller
         self.dynamics = dynamics
         self.T = T
+        self.N = N
         self.theta_trajectory = torch.empty((1, 0))
         self.u_trajectory = torch.empty((1, 0))
 
@@ -117,18 +123,22 @@ class Simulation(nn.Module):
 
     @staticmethod
     def initialize_state():
-        state = [dx_ini, vx_ini, dy_ini, vy_ini, theta]  # TODO: need batch of initial states
+        # state = [1., 0.]  # TODO: need batch of initial states
+        state = torch.rand((N, 5))
+        state[:, 1] = 0  # vx = 0
+        state[:, 3] = 0  # vy = 0
+        # TODO: need batch of initial states
         return torch.tensor(state, requires_grad=False).float()
 
     def error(self, state):
-        return state[0]**2 + state[1]**2 + state[2]**2 + state[3]**2 + state[4]**2
+        return torch.mean(state ** 2)
 
 class Optimize:
 
     def __init__(self, simulation):
         self.simulation = simulation
         self.parameters = simulation.controller.parameters()
-        self.optimizer = optim.LBFGS(self.parameters, lr=0.001)
+        self.optimizer = optim.LBFGS(self.parameters, lr=0.01)
         self.loss_list = []
 
     def step(self):
@@ -149,57 +159,62 @@ class Optimize:
         self.visualize()
 
     def visualize(self):
-        data = np.array([self.simulation.state_trajectory[i].detach().numpy() for i in range(self.simulation.T)])
-        dx = data[:, 0]
-        dy = data[:, 2]
-        vx = data[:, 1]
-        vy = data[:, 3]
-        theta = data[:, 4]
-        plt.plot(dx, dy)
-        plt.title('Position Changeable for Rocket Landing')
-        plt.xlabel('Rocket X Position(m)')
-        plt.ylabel('Rocket Y Position(m)')
+        data = np.array([[self.simulation.state_trajectory[i][N].detach().numpy() for i in range(self.simulation.T)] for N in range(self.simulation.N)])
+        for i in range(self.simulation.N):
+            dx = data[i, :, 0]
+            dy = data[i, :, 2]
+            vx = data[i, :, 1]
+            vy = data[i, :, 3]
+            theta = data[i, :, 4]
+            fig1, axs0 = plt.subplots()
+            fig2, axs1 = plt.subplots()
+            fig3, axs2 = plt.subplots()
+            fig4, axs3 = plt.subplots()
+            axs0.plot(dx, dy)
+            axs0.set_title('Position Changeable for Rocket Landing')
+            axs0.set_xlabel('Rocket X Position(m)')
+            axs0.set_ylabel('Rocket Y Position(m)')
+
+            axs1.plot(list(range(self.simulation.T)), vx)
+            axs1.set_title('Velocity X Changeable for Rocket Landing')
+            axs1.set_xlabel('Time Step')
+            axs1.set_ylabel('Rocket X Velocity(m)')
+
+            axs2.plot(list(range(self.simulation.T)), vy)
+            axs2.set_title('Velocity Y Changeable for Rocket Landing')
+            axs2.set_xlabel('Time Step')
+            axs2.set_ylabel('Rocket Y Velocity(m)')
+
+            axs3.plot(list(range(self.simulation.T)), theta)
+            axs3.set_title('Theta Changeable for Rocket Landing')
+            axs3.set_xlabel('Time Step')
+            axs3.set_ylabel('Rocket Theta(rad)')
         plt.show()
 
-        plt.plot(list(range(self.simulation.T)), vx)
-        plt.title('Velocity X Changeable for Rocket Landing')
-        plt.xlabel('Time Step')
-        plt.ylabel('Rocket X Velocity(m)')
-        plt.show()
-
-        plt.plot(list(range(self.simulation.T)), vy)
-        plt.title('Velocity Y Changeable for Rocket Landing')
-        plt.xlabel('Time Step')
-        plt.ylabel('Rocket Y Velocity(m)')
-        plt.show()
-
-        plt.plot(list(range(self.simulation.T)), theta)
-        plt.title('Theta Changeable for Rocket Landing')
-        plt.xlabel('Time Step')
-        plt.ylabel('Rocket Theta(rad)')
-        plt.show()
-
-T = 100  # time steps
+N = 10  # number of samples  for random case
+T = 100  # number of time steps
 dim_input = 5  # state space dimensions
 dim_hidden = 6  # latent dimensions
 dim_output = 2  # action space dimensions
 d = Dynamics()  # define dynamics
 c = Controller(dim_input, dim_hidden, dim_output)  # define controller
-s = Simulation(c, d, T)  # define simulation
+s = Simulation(c, d, T, N)  # define simulation, N is the number of samples to be considered
 o = Optimize(s)  # define optimizer
-o.train(200)
+o.train(80)  # solve the optimization problem
 
 plt.title('Objective Function Convergence Curve')
 plt.xlabel('Training Iteration')
 plt.ylabel('Error')
-plt.plot(list(range(100)), o.loss_list)
+plt.plot(list(range(80)), o.loss_list)
 plt.show()
 
 # store data
-# data = np.array([s.state_trajectory[i].detach().numpy() for i in range(s.T)])
+# data = np.array([[s.state_trajectory[i][j].detach().numpy() for i in range(s.T)] for j in range(s.N)])
+# idx = 6
+#
 # time = np.linspace(0, 3, 100)
 #
-# save_data = {'X': data.T,
+# save_data = {'X': data[idx, :, :].T,
 #              't': time}
-# save_path = 'data_rocket_landing.mat'
+# save_path = 'data_rocket_landing_test.mat'
 # scipy.io.savemat(save_path, save_data)
