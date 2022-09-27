@@ -60,15 +60,6 @@ class VisUtils:
         pg.display.flip()
         pg.display.update()
 
-    def blit_alpha(self, target, source, location, opacity):
-        x = location[0]
-        y = location[1]
-        temp = pg.Surface((source.get_width(), source.get_height())).convert()
-        temp.blit(target, (-x, -y))
-        temp.blit(source, (0, 0))
-        temp.set_alpha(opacity)
-        target.blit(temp, location)
-
     def draw_frame(self):
         '''state[t] = [s_x, s_y, v_x, v_y]_t'''
         '''state = [state_t, state_t+1, ...]'''
@@ -95,7 +86,7 @@ class VisUtils:
             pos_x = pos_x_old * (1 - k * 1. / steps) + pos_x_new * (k * 1. / steps)
             pos_y = pos_y_old * (1 - k * 1. / steps) + pos_y_new * (k * 1. / steps)
 
-            pos = (pos_x, pos_y)  # rocket position
+            pos = (-pos_x, pos_y)  # rocket position
 
             orientation = -np.array(self.rocket_par[0]['state'][4][k]) * 180 / math.pi
 
@@ -125,8 +116,8 @@ class VisUtils:
 
     def c2p(self, coordinates):
         '''coordinates = x, y position in your environment(vehicle position)'''
-        x = self.coordinate_scale * (- coordinates[0] + self.origin[0] + self.screen_width / 2)
-        y = self.coordinate_scale * (- coordinates[1] + self.origin[1] + self.screen_height / 2)
+        x = self.coordinate_scale * (-coordinates[0] + self.origin[0] + self.screen_width / 2)
+        y = self.coordinate_scale * (-coordinates[1] + self.origin[1] + self.screen_height / 2)
 
         x = int(
             (x - self.screen_width * self.coordinate_scale * 0.5) * self.zoom
@@ -139,7 +130,7 @@ class VisUtils:
         return np.array([x, y])
 
     def generate(self, data):
-        t_bar = np.linspace(0, 3, 40)
+        t_bar = np.linspace(0, 3, 50)
         X_bar = np.zeros((5, t_bar.shape[0]))
         i = 0
         j = 0
@@ -151,11 +142,12 @@ class VisUtils:
                 i += 1
             """
             rocket: original state: (px, vx, py, vy, theta)
+            scaling the position and velocity to have a better animation, original position and velocity is in [0, 1]
             """
-            X_bar[0][j] = (time - t[0][i - 1]) * (X[0][i] - X[0][i - 1]) / (t[0][i] - t[0][i - 1]) + X[0][i - 1]
-            X_bar[1][j] = (time - t[0][i - 1]) * (X[1][i] - X[1][i - 1]) / (t[0][i] - t[0][i - 1]) + X[1][i - 1]
-            X_bar[2][j] = (time - t[0][i - 1]) * (X[2][i] - X[2][i - 1]) / (t[0][i] - t[0][i - 1]) + X[2][i - 1]
-            X_bar[3][j] = (time - t[0][i - 1]) * (X[3][i] - X[3][i - 1]) / (t[0][i] - t[0][i - 1]) + X[3][i - 1]
+            X_bar[0][j] = ((time - t[0][i - 1]) * (X[0][i] - X[0][i - 1]) / (t[0][i] - t[0][i - 1]) + X[0][i - 1]) * 6
+            X_bar[1][j] = ((time - t[0][i - 1]) * (X[1][i] - X[1][i - 1]) / (t[0][i] - t[0][i - 1]) + X[1][i - 1]) * 6
+            X_bar[2][j] = ((time - t[0][i - 1]) * (X[2][i] - X[2][i - 1]) / (t[0][i] - t[0][i - 1]) + X[2][i - 1]) * 6
+            X_bar[3][j] = ((time - t[0][i - 1]) * (X[3][i] - X[3][i - 1]) / (t[0][i] - t[0][i - 1]) + X[3][i - 1]) * 6
             X_bar[4][j] = (time - t[0][i - 1]) * (X[4][i] - X[4][i - 1]) / (t[0][i] - t[0][i - 1]) + X[4][i - 1]
             time = time + 0.1
             j += 1
