@@ -7,5 +7,5 @@ The code and file is organized as follows:
 * project1_demo.pptx: edit rocket landing figure.
 * data_rocket_landing.mat : animation data of rocket landing
 * sim_draw_rocket landing_orientation.py: rocket landing animation.
-* rocket landing.png: rocket landing scheme.
+* rocket landing.png: rocket landing schematics.
 * image_recording: store rocket landing animation.
