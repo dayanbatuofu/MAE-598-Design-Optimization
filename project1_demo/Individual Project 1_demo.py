@@ -32,8 +32,8 @@ class Dynamics(nn.Module):
 
     def forward(self, state, action):
         """
-        action[0] = controller
-        action[1] = theta
+        action[0] = thrust controller
+        action[1] = omega controller
 
         state[0] = x
         state[1] = x_dot
